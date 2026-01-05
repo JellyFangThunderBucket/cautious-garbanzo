@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+  <title>Example PWA — Notes</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- iOS meta tags for standalone/fullscreen behavior -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ExamplePWA" />
+  <!-- iOS icon -->
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+  <!-- Theme colors -->
+  <meta name="theme-color" content="#2b2f6b" />
+
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="app">
+    <header>
+      <img src="/icons/logo.svg" alt="logo" class="logo" />
+      <h1>Example PWA — Notes</h1>
+    </header>
+
+    <section class="container">
+      <label for="noteInput">Write something (saved locally):</label>
+      <textarea id="noteInput" placeholder="Type notes here..."></textarea>
+      <div class="buttons">
+        <button id="saveBtn">Save</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+
+      <h2>Saved notes</h2>
+      <div id="savedNotes" class="notes"></div>
+    </section>
+
+    <footer>
+      <small>Offline-capable PWA demo</small>
+    </footer>
+  </main>
+
+  <script src="/app.js"></script>
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(() => console.log('Service worker registered'))
+        .catch(err => console.warn('SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>
