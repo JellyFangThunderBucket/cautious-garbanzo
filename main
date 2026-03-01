@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Eruda DevTools - All Websites
 // @namespace    http://yournamespace/
-// @version      3.1
+// @version      3.2
 // @description  Inject Eruda devtools on any website
 // @author       You
 // @match        *://*/*
@@ -14,18 +14,19 @@
 
     if (window.eruda) return;
 
-    var savedX = GM_getValue('erudaX', null);
-    var savedY = GM_getValue('erudaY', null);
+    const savedX = GM_getValue('erudaX', null);
+    const savedY = GM_getValue('erudaY', null);
 
-    var blacklist = [
+    // Use exact hostname matches to avoid partial-domain false positives
+    const blacklist = [
         'accounts.google.com',
         'login.microsoftonline.com'
     ];
-    if (blacklist.some(site => location.hostname.includes(site))) return;
+    if (blacklist.some(site => location.hostname === site || location.hostname.endsWith('.' + site))) return;
 
-    var script = document.createElement('script');
+    const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/eruda@3.0.1/eruda.min.js';
-    script.defer = false;
+    // async defaults to true for dynamically created scripts; set false to preserve load order
     script.async = false;
 
     script.onload = function() {
@@ -33,34 +34,29 @@
         eruda.hide();
 
         setTimeout(function() {
-            eruda.hide();
-
             // Restore saved button position
-            if (savedX !== null && savedY !== null) {
-                try {
-                    var btn = document.querySelector('.eruda-entry-btn');
-                    if (btn) {
+            const btn = document.querySelector('.eruda-entry-btn');
+            if (btn) {
+                if (savedX !== null && savedY !== null) {
+                    try {
                         btn.style.left = savedX + 'px';
                         btn.style.top = savedY + 'px';
-                    }
-                } catch(e) {}
-            }
+                    } catch(e) {}
+                }
 
-            // Save button position when moved
-            try {
-                var btn = document.querySelector('.eruda-entry-btn');
-                if (btn) {
-                    var observer = new MutationObserver(function() {
-                        var rect = btn.getBoundingClientRect();
+                // Save button position when moved
+                try {
+                    const observer = new MutationObserver(function() {
+                        const rect = btn.getBoundingClientRect();
                         GM_setValue('erudaX', rect.left);
                         GM_setValue('erudaY', rect.top);
                     });
                     observer.observe(btn, { attributes: true, attributeFilter: ['style'] });
-                }
-            } catch(e) {}
+                } catch(e) {}
+            }
 
             // Load plugins one at a time in sequence to avoid race conditions
-            var plugins = [
+            const plugins = [
                 { src: 'https://cdn.jsdelivr.net/npm/eruda-dom', name: 'erudaDom' },
                 { src: 'https://cdn.jsdelivr.net/npm/eruda-timing', name: 'erudaTiming' },
                 { src: 'https://cdn.jsdelivr.net/npm/eruda-memory', name: 'erudaMemory' },
@@ -72,16 +68,14 @@
 
             function loadNext(index) {
                 if (index >= plugins.length) {
-                    console.log('%c✅ Eruda ready with all plugins', 'color:lime; font-weight:bold;');
                     eruda.hide();
-
-                    // Add a custom JS code editor tab manually since eruda-code is unreliable
+                    console.log('%c✅ Eruda ready with all plugins', 'color:lime; font-weight:bold;');
                     addCodeTab();
                     return;
                 }
 
-                var plugin = plugins[index];
-                var s = document.createElement('script');
+                const plugin = plugins[index];
+                const s = document.createElement('script');
                 s.src = plugin.src;
                 s.onload = function() {
                     try {
@@ -92,7 +86,6 @@
                     } catch(e) {
                         console.warn('%c⚠️ Could not add: ' + plugin.name, 'color:orange;', e);
                     }
-                    eruda.hide();
                     loadNext(index + 1);
                 };
                 s.onerror = function() {
@@ -112,15 +105,15 @@
             });
 
             // Double tap anywhere to open on mobile
-            var lastTap = 0;
-            var tapCount = 0;
+            let lastTap = 0;
+            let tapCount = 0;
             document.addEventListener('touchend', function(e) {
-                var now = Date.now();
+                const now = Date.now();
                 if (now - lastTap < 300) {
                     tapCount++;
                     if (tapCount >= 2) {
-                        var btn = document.querySelector('.eruda-entry-btn');
-                        if (btn && !btn.contains(e.target)) {
+                        const entryBtn = document.querySelector('.eruda-entry-btn');
+                        if (entryBtn && !entryBtn.contains(e.target)) {
                             eruda.show();
                             tapCount = 0;
                         }
@@ -137,9 +130,7 @@
     // Custom JS code editor tab built from scratch
     function addCodeTab() {
         try {
-            var Tool = eruda.Tool || eruda._tools;
-
-            var CodeTool = {
+            const CodeTool = {
                 name: 'Code',
                 init: function(container) {
                     container.innerHTML = [
@@ -207,11 +198,11 @@
                         '</div>'
                     ].join('');
 
-                    var input = container.querySelector('#eruda-code-input');
-                    var output = container.querySelector('#eruda-code-output');
-                    var runBtn = container.querySelector('#eruda-code-run');
-                    var clearBtn = container.querySelector('#eruda-code-clear');
-                    var copyBtn = container.querySelector('#eruda-code-copy');
+                    const input = container.querySelector('#eruda-code-input');
+                    const output = container.querySelector('#eruda-code-output');
+                    const runBtn = container.querySelector('#eruda-code-run');
+                    const clearBtn = container.querySelector('#eruda-code-clear');
+                    const copyBtn = container.querySelector('#eruda-code-copy');
 
                     // Restore saved code
                     input.value = GM_getValue('erudaCode', '');
@@ -225,8 +216,8 @@
                     input.addEventListener('keydown', function(e) {
                         if (e.key === 'Tab') {
                             e.preventDefault();
-                            var start = input.selectionStart;
-                            var end = input.selectionEnd;
+                            const start = input.selectionStart;
+                            const end = input.selectionEnd;
                             input.value = input.value.substring(0, start) + '    ' + input.value.substring(end);
                             input.selectionStart = input.selectionEnd = start + 4;
                         }
@@ -237,12 +228,20 @@
                     });
 
                     runBtn.addEventListener('click', function() {
-                        var code = input.value;
+                        const code = input.value;
                         if (!code.trim()) return;
                         output.style.color = '#0f0';
                         try {
-                            var result = eval.call(window, code);
-                            output.textContent = result !== undefined ? JSON.stringify(result, null, 2) : '✅ Executed (no return value)';
+                            const result = eval.call(window, code);
+                            if (result !== undefined) {
+                                try {
+                                    output.textContent = JSON.stringify(result, null, 2);
+                                } catch(e) {
+                                    output.textContent = String(result);
+                                }
+                            } else {
+                                output.textContent = '✅ Executed (no return value)';
+                            }
                         } catch(err) {
                             output.style.color = '#ff4444';
                             output.textContent = '❌ Error: ' + err.message;
@@ -259,6 +258,9 @@
                     copyBtn.addEventListener('click', function() {
                         navigator.clipboard.writeText(input.value).then(function() {
                             copyBtn.textContent = '✅ Copied!';
+                            setTimeout(function() { copyBtn.textContent = '📋 Copy'; }, 1500);
+                        }).catch(function() {
+                            copyBtn.textContent = '❌ Failed';
                             setTimeout(function() { copyBtn.textContent = '📋 Copy'; }, 1500);
                         });
                     });
